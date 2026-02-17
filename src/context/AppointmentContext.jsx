@@ -1,23 +1,38 @@
-import { createContext, useState } from 'react';
+import { createContext, useState, useEffect } from 'react';
 
-// 1. Creamos el contexto
 export const AppointmentContext = createContext();
 
-// 2. Creamos el proveedor
 export const AppointmentProvider = ({ children }) => {
-  const [appointment, setAppointment] = useState({
-    service: null, // Aquí guardaremos el objeto del servicio (nombre, precio, etc)
-    date: null,
-    time: null,
-    client: { name: '', phone: '' }
+  const [appointment, setAppointment] = useState(() => {
+    const saved = localStorage.getItem('barber_appointment');
+    return saved ? JSON.parse(saved) : {
+      service: null,
+      date: null,
+      time: null,
+      client: { name: '', phone: '' }
+    };
   });
+
+  useEffect(() => {
+    localStorage.setItem('barber_appointment', JSON.stringify(appointment));
+  }, [appointment]);
 
   const updateAppointment = (newData) => {
     setAppointment((prev) => ({ ...prev, ...newData }));
   };
-console.log('Estado del AppointmentContext:', appointment); // Debug para ver el estado en cada render
+
+  const resetAppointment = () => {
+    localStorage.removeItem('barber_appointment');
+    setAppointment({
+      service: null,
+      date: null,
+      time: null,
+      client: { name: '', phone: '' }
+    });
+  };
+
   return (
-    <AppointmentContext.Provider value={{ appointment, updateAppointment }}>
+    <AppointmentContext.Provider value={{ appointment, updateAppointment, resetAppointment }}>
       {children}
     </AppointmentContext.Provider>
   );
