@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient"; // Asegúrate de que la ruta sea correcta
 
-const ALL_HOURS = ["09:00", "10:00", "11:00", "12:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
+const ALL_HOURS = [
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00",
+  "20:00",
+];
 
 const BarberAdmin = () => {
   const [appointments, setAppointments] = useState([]);
@@ -131,7 +141,7 @@ const BarberAdmin = () => {
         {/* SECCIÓN 1: PRÓXIMOS TURNOS */}
         <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-            📅 Próximos Turnos
+            📅 Agenda de Turnos
             <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">
               {appointments.length}
             </span>
@@ -145,21 +155,70 @@ const BarberAdmin = () => {
               appointments.map((app) => (
                 <div
                   key={app.id}
-                  className="p-3 border border-slate-50 rounded-xl bg-slate-50/50"
+                  className="p-4 border border-slate-100 rounded-xl bg-slate-50/50 hover:bg-white transition-all group"
                 >
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start mb-3">
                     <div>
-                      <p className="font-bold text-slate-800 capitalize">
+                      <p className="font-bold text-slate-800 capitalize leading-none mb-1">
                         {app.client_name || "Cliente"}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        {app.service_name} • {app.date}
+                      <p className="text-[11px] text-indigo-600 font-bold uppercase tracking-wider">
+                        {app.date} • {app.time}hs
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {app.service_name}
                       </p>
                     </div>
-                    <span className="text-indigo-600 font-black text-sm">
-                      {app.time}hs
-                    </span>
+                    {/* Botón para borrar/finalizar turno */}
+                    <button
+                      onClick={async () => {
+                        if (
+                          window.confirm(
+                            "¿Marcar como finalizado? Se borrará de la lista.",
+                          )
+                        ) {
+                          const { error } = await supabase
+                            .from("appointments")
+                            .delete()
+                            .eq("id", app.id);
+                          if (!error) fetchAdminData();
+                        }
+                      }}
+                      className="text-slate-300 hover:text-red-500 p-1"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                        className="w-5 h-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+                        />
+                      </svg>
+                    </button>
                   </div>
+
+                  {/* Botón rápido de WhatsApp para el Barbero */}
+                  <a
+                    href={`https://wa.me/${app.client_phone?.replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold transition-colors"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.319 1.592 5.448 0 9.886-4.438 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.735-.981z" />
+                    </svg>
+                    MENSAJEAR CLIENTE
+                  </a>
                 </div>
               ))
             )}
