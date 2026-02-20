@@ -32,6 +32,11 @@ const BarberAdmin = () => {
     fetchAdminData();
   }, []);
 
+  // 1. Obtén las horas de los turnos ya reservados para el día seleccionado
+  const reservedByClients = appointments
+    .filter((app) => app.date === selectedDate) // 'selectedDate' es el valor del input tipo date
+    .map((app) => app.time); // O 'app.hour', como se llame en tu tabla 'appointments'
+
   // Cargar bloqueos al cambiar de fecha
   useEffect(() => {
     fetchBlockedShifts();
@@ -46,6 +51,14 @@ const BarberAdmin = () => {
   };
 
   const toggleBlockShift = async (hora) => {
+    // CAMBIO AQUÍ: Usamos 'reservedByClients' que es la variable que sí tenés definida arriba
+    if (reservedByClients.includes(hora)) {
+      alert(
+        "Este horario tiene un turno reservado por un cliente y no puede modificarse desde aquí.",
+      );
+      return;
+    }
+
     if (blockedList.includes(hora)) {
       // Desbloquear
       await supabase
@@ -141,86 +154,94 @@ const BarberAdmin = () => {
         {/* SECCIÓN 1: PRÓXIMOS TURNOS */}
         <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-            📅 Agenda de Turnos
+            📅 Turnos del día
             <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">
-              {appointments.length}
+              {/* Contamos solo los turnos del día seleccionado */}
+              {appointments.filter((app) => app.date === selectedDate).length}
             </span>
           </h2>
+
           <div className="space-y-4">
-            {appointments.length === 0 ? (
-              <p className="text-slate-400 text-sm italic">
-                No hay turnos agendados.
-              </p>
+            {/* Filtramos el array antes de recorrerlo */}
+            {appointments.filter((app) => app.date === selectedDate).length ===
+            0 ? (
+              <div className="text-center py-10">
+                <p className="text-slate-400 text-sm italic">
+                  No hay turnos para esta fecha.
+                </p>
+              </div>
             ) : (
-              appointments.map((app) => (
-                <div
-                  key={app.id}
-                  className="p-4 border border-slate-100 rounded-xl bg-slate-50/50 hover:bg-white transition-all group"
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <p className="font-bold text-slate-800 capitalize leading-none mb-1">
-                        {app.client_name || "Cliente"}
-                      </p>
-                      <p className="text-[11px] text-indigo-600 font-bold uppercase tracking-wider">
-                        {app.date} • {app.time}hs
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {app.service_name}
-                      </p>
+              appointments
+                .filter((app) => app.date === selectedDate)
+                .map((app) => (
+                  <div
+                    key={app.id}
+                    className="p-4 border border-slate-100 rounded-xl bg-slate-50/50 hover:bg-white transition-all group"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <p className="font-bold text-slate-800 capitalize leading-none mb-1">
+                          {app.client_name || "Cliente"}
+                        </p>
+                        <p className="text-[11px] text-indigo-600 font-bold uppercase tracking-wider">
+                          {app.date} • {app.time}hs
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {app.service_name}
+                        </p>
+                      </div>
+                      {/* Botón para borrar/finalizar turno */}
+                      <button
+                        onClick={async () => {
+                          if (
+                            window.confirm(
+                              "¿Marcar como finalizado? Se borrará de la lista.",
+                            )
+                          ) {
+                            const { error } = await supabase
+                              .from("appointments")
+                              .delete()
+                              .eq("id", app.id);
+                            if (!error) fetchAdminData();
+                          }
+                        }}
+                        className="text-slate-300 hover:text-red-500 p-1"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                          className="w-5 h-5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+                          />
+                        </svg>
+                      </button>
                     </div>
-                    {/* Botón para borrar/finalizar turno */}
-                    <button
-                      onClick={async () => {
-                        if (
-                          window.confirm(
-                            "¿Marcar como finalizado? Se borrará de la lista.",
-                          )
-                        ) {
-                          const { error } = await supabase
-                            .from("appointments")
-                            .delete()
-                            .eq("id", app.id);
-                          if (!error) fetchAdminData();
-                        }
-                      }}
-                      className="text-slate-300 hover:text-red-500 p-1"
+
+                    {/* Botón rápido de WhatsApp para el Barbero */}
+                    <a
+                      href={`https://wa.me/${app.client_phone?.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-center gap-2 w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold transition-colors"
                     >
                       <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
+                        className="w-4 h-4"
+                        fill="currentColor"
                         viewBox="0 0 24 24"
-                        strokeWidth={2}
-                        stroke="currentColor"
-                        className="w-5 h-5"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-                        />
+                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.319 1.592 5.448 0 9.886-4.438 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.735-.981z" />
                       </svg>
-                    </button>
+                      MENSAJEAR CLIENTE
+                    </a>
                   </div>
-
-                  {/* Botón rápido de WhatsApp para el Barbero */}
-                  <a
-                    href={`https://wa.me/${app.client_phone?.replace(/\D/g, "")}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold transition-colors"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.319 1.592 5.448 0 9.886-4.438 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.735-.981z" />
-                    </svg>
-                    MENSAJEAR CLIENTE
-                  </a>
-                </div>
-              ))
+                ))
             )}
           </div>
         </section>
@@ -324,27 +345,48 @@ const BarberAdmin = () => {
         </section>
         <section className="mt-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <h2 className="text-lg font-bold mb-4">🗓️ Gestionar Horarios</h2>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full p-3 border rounded-xl mb-4 outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+          <div className="flex gap-2 mb-4">
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="flex-1 p-3 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button
+              onClick={() =>
+                setSelectedDate(new Date().toISOString().split("T")[0])
+              }
+              className="px-4 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-100 transition-colors"
+            >
+              Hoy
+            </button>
+          </div>
 
           <div className="grid grid-cols-3 gap-2">
-            {ALL_HOURS.map((hora) => (
-              <button
-                key={hora}
-                onClick={() => toggleBlockShift(hora)}
-                className={`p-2 rounded-lg border-2 font-bold text-xs transition-all ${
-                  blockedList.includes(hora)
-                    ? "bg-red-50 border-red-200 text-red-600"
-                    : "bg-slate-50 border-slate-100 text-slate-600 hover:border-indigo-300"
-                }`}
-              >
-                {hora} {blockedList.includes(hora) ? "🚫" : "✅"}
-              </button>
-            ))}
+            {ALL_HOURS.map((hora) => {
+              const isManualBlocked = blockedList.includes(hora);
+              const isReserved = reservedByClients.includes(hora);
+              const isOccupied = isManualBlocked || isReserved;
+
+              return (
+                <button
+                  key={hora}
+                  // 1. Agregamos disabled para que el navegador bloquee el click físicamente
+                  disabled={isReserved}
+                  onClick={() => toggleBlockShift(hora)}
+                  className={`p-2 rounded-lg border-2 font-bold text-xs transition-all ${
+                    isOccupied
+                      ? "bg-red-50 border-red-200 text-red-600"
+                      : "bg-slate-50 border-slate-100 text-slate-600"
+                  } ${isReserved ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+                >
+                  {hora} {isOccupied ? "🚫" : "✅"}
+                  {isReserved && (
+                    <span className="block text-[8px] uppercase">Cliente</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
           <p className="mt-4 text-[10px] text-slate-400 italic">
             * Los horarios en rojo no aparecerán disponibles para los clientes.
