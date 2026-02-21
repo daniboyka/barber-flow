@@ -226,7 +226,7 @@ const BarberAdmin = () => {
 
                     {/* Botón rápido de WhatsApp para el Barbero */}
                     <a
-                      href={`https://wa.me/${app.client_phone?.replace(/\D/g, "")}`}
+                      href={`https://wa.me/549${app.client_phone?.replace(/\D/g, "").replace(/^54/, "").replace(/^9/, "").replace(/^15/, "")}`}
                       target="_blank"
                       rel="noreferrer"
                       className="flex items-center justify-center gap-2 w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold transition-colors"
