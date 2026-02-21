@@ -156,13 +156,11 @@ const BarberAdmin = () => {
           <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
             📅 Turnos del día
             <span className="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">
-              {/* Contamos solo los turnos del día seleccionado */}
               {appointments.filter((app) => app.date === selectedDate).length}
             </span>
           </h2>
 
           <div className="space-y-4">
-            {/* Filtramos el array antes de recorrerlo */}
             {appointments.filter((app) => app.date === selectedDate).length ===
             0 ? (
               <div className="text-center py-10">
@@ -173,75 +171,107 @@ const BarberAdmin = () => {
             ) : (
               appointments
                 .filter((app) => app.date === selectedDate)
-                .map((app) => (
-                  <div
-                    key={app.id}
-                    className="p-4 border border-slate-100 rounded-xl bg-slate-50/50 hover:bg-white transition-all group"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <p className="font-bold text-slate-800 capitalize leading-none mb-1">
-                          {app.client_name || "Cliente"}
-                        </p>
-                        <p className="text-[11px] text-indigo-600 font-bold uppercase tracking-wider">
-                          {app.date} • {app.time}hs
-                        </p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {app.service_name}
-                        </p>
-                      </div>
-                      {/* Botón para borrar/finalizar turno */}
-                      <button
-                        onClick={async () => {
-                          if (
-                            window.confirm(
-                              "¿Marcar como finalizado? Se borrará de la lista.",
-                            )
-                          ) {
-                            const { error } = await supabase
-                              .from("appointments")
-                              .delete()
-                              .eq("id", app.id);
-                            if (!error) fetchAdminData();
-                          }
-                        }}
-                        className="text-slate-300 hover:text-red-500 p-1"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={2}
-                          stroke="currentColor"
-                          className="w-5 h-5"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-                          />
-                        </svg>
-                      </button>
-                    </div>
+                .map((app) => {
+                  // --- LÓGICA DE WHATSAPP PARA CADA TURNO ---
+                  const cleanPhone = app.client_phone
+                    ?.replace(/\D/g, "")
+                    .replace(/^54/, "")
+                    .replace(/^9/, "")
+                    .replace(/^15/, "");
+                  const baseUrl = `https://wa.me/549${cleanPhone}`;
 
-                    {/* Botón rápido de WhatsApp para el Barbero */}
-                    <a
-                      href={`https://wa.me/549${app.client_phone?.replace(/\D/g, "").replace(/^54/, "").replace(/^9/, "").replace(/^15/, "")}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-center gap-2 w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold transition-colors"
+                  const msjConfirmar = encodeURIComponent(
+                    `¡Hola ${app.client_name}! ✂️ Te confirmo tu turno para el día ${app.date} a las ${app.time}hs. ¡Te esperamos!`,
+                  );
+                  const msjRechazar = encodeURIComponent(
+                    `Hola ${app.client_name}, lamentablemente no podemos tomar tu turno para el ${app.date} a las ${app.time}hs. ¿Podemos reprogramar?`,
+                  );
+                  const msjConsulta = encodeURIComponent(
+                    `¡Hola ${app.client_name}! Te escribo de la barbería por tu turno del ${app.date}...`,
+                  );
+
+                  return (
+                    <div
+                      key={app.id}
+                      className="p-4 border border-slate-100 rounded-xl bg-slate-50/50 hover:bg-white transition-all"
                     >
-                      <svg
-                        className="w-4 h-4"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.319 1.592 5.448 0 9.886-4.438 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.735-.981z" />
-                      </svg>
-                      MENSAJEAR CLIENTE
-                    </a>
-                  </div>
-                ))
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <p className="font-bold text-slate-800 capitalize leading-none mb-1">
+                            {app.client_name || "Cliente"}
+                          </p>
+                          <p className="text-[11px] text-indigo-600 font-bold uppercase tracking-wider">
+                            {app.date} • {app.time}hs
+                          </p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {app.service_name}
+                          </p>
+                        </div>
+
+                        {/* TU BOTÓN DE ELIMINAR SE MANTIENE AQUÍ */}
+                        <button
+                          onClick={async () => {
+                            if (
+                              window.confirm(
+                                "¿Marcar como finalizado? Se borrará de la lista.",
+                              )
+                            ) {
+                              const { error } = await supabase
+                                .from("appointments")
+                                .delete()
+                                .eq("id", app.id);
+                              if (!error) fetchAdminData();
+                            }
+                          }}
+                          className="text-slate-300 hover:text-red-500 p-1"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2}
+                            stroke="currentColor"
+                            className="w-5 h-5"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* CENTRAL DE ACCIONES WHATSAPP */}
+                      <div className="flex flex-col gap-2 mt-4">
+                        <a
+                          href={`${baseUrl}?text=${msjConfirmar}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center justify-center py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-[10px] font-bold transition-all"
+                        >
+                          ✅ CONFIRMAR
+                        </a>
+                        <a
+                          href={`${baseUrl}?text=${msjConsulta}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center justify-center py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[10px] font-bold transition-all"
+                        >
+                          💬 CONSULTAR
+                        </a>
+                        <a
+                          href={`${baseUrl}?text=${msjRechazar}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center justify-center py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-[10px] font-bold transition-all"
+                        >
+                          ❌ RECHAZAR
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })
             )}
           </div>
         </section>
