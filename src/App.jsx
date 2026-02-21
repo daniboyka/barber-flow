@@ -4,7 +4,17 @@ import { supabase } from "./supabaseClient";
 import Login from "./componentes/Login";
 import BarberAdmin from "./componentes/BarberAdmin";
 
-const ALL_HOURS = ["09:00", "10:00", "11:00", "12:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
+const ALL_HOURS = [
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00",
+  "20:00",
+];
 
 function App() {
   const { appointment, updateAppointment, resetAppointment } =
@@ -272,10 +282,14 @@ function App() {
                 Elegí el día y hora
               </h2>
               <input
-                type="date"
+                type={appointment.date ? "date" : "text"} // Si no hay fecha, se ve como texto para mostrar el placeholder
+                placeholder="📅 Toca para elegir el día"
+                onFocus={(e) => (e.target.type = "date")} // Al tocarlo se convierte en calendario
+                onBlur={(e) => !e.target.value && (e.target.type = "text")} // Si no eligen nada, vuelve al texto
                 min={new Date().toISOString().split("T")[0]}
+                value={appointment.date}
                 onChange={(e) => updateAppointment({ date: e.target.value })}
-                className="w-full p-3 border-2 border-slate-200 rounded-xl mb-6 outline-none"
+                className="w-full p-3 border-2 border-slate-200 rounded-xl mb-6 outline-none focus:border-indigo-500 appearance-none bg-white"
               />
               <div className="grid grid-cols-3 gap-2 mb-6">
                 {ALL_HOURS.map((hora) => (
@@ -324,13 +338,15 @@ function App() {
               />
               <input
                 type="tel"
-                placeholder="Tu teléfono"
+                placeholder="Tu teléfono (Cod. área + número)"
                 value={appointment.client.phone}
-                onChange={(e) =>
+                maxLength={10} // Para evitar números larguísimos
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, ""); // Solo permite números mientras escriben
                   updateAppointment({
-                    client: { ...appointment.client, phone: e.target.value },
-                  })
-                }
+                    client: { ...appointment.client, phone: val },
+                  });
+                }}
                 className="w-full p-3 border-2 border-slate-200 rounded-xl mb-6 outline-none focus:border-indigo-500"
               />
               <button
